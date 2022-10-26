@@ -1,35 +1,35 @@
 #' Counterfactual Variable
 #'
-#' Defines a counterfactual variable \eqn{y_x}.
+#' `cf` defines a counterfactual variable \eqn{y_x}.
 #'
-#' @param var A character vector of length one naming
-#'     the variable (i.e., \eqn{Y}).
-#' @param obs An integer vector of length one or zero. If given, denotes
-#'     the observed value of `var` (i.e., \eqn{Y = 0})
-#' @param int A named integer vector where the names correspond to the variables
-#'     intervened on (i.e., \eqn{X}) and values to the value assignments
-#'     (their levels).
-#'
-#' @details
+#' @section Counterfactual Variables:
 #' Assume that \eqn{Y} is a single variable and \eqn{X} is a vector
 #' of variables. Here, The notation \eqn{y_x} means that the variable
 #' \eqn{Y} (`var`) attains the value \eqn{y} (`obs`) under the
-#' intervention \eqn{do(X = x)} (`int`).
+#' intervention \eqn{do(X = x)} (`sub`).
 #'
 #' Note that different values of `obs` for a two variables with the same `var`
-#' and the same `int` do not denote their actual values, but the levels
+#' and the same `sub` do not denote their actual values, but the levels
 #' (i.e., `obs = 0` is different from `obs = 1`, but the variables do not
-#' actually attain values 0 and 1). For more information about the
+#' actually attain values 0 and 1). In other words, if `var` is different for
+#' two counterfactual variables, but they have the same value `obs`, this
+#' does not mean that these variables have the same value. They will only
+#' actually have the same value if they share both `var` and `obs`.
+#'
+#' For more information about the
 #' \eqn{do}-operator, see Pearl (2009). The shortcut alias `cf` can also
-#' be used to construct counterfactual variables variables.
+#' be used to construct counterfactual variables.
 #'
-#' @references
-#' Pearl, J. (2009) *Causality: Models, Reasoning, and Inference*. Cambridge
-#' University Press, 2nd edition.
-#'
-#' @return An object of class `CounterfactualVariable`.
-#'
-#' @seealso [cfid::CounterfactualConjunction()]
+#' @rdname counterfactuals
+#' @param var A character vector of length one naming the variable
+#' (i.e., \eqn{Y}).
+#' @param obs An integer vector of length one or zero. If given, denotes
+#' the observed value of `var` (i.e., \eqn{Y = y})
+#' @param sub A named integer vector where the names correspond to the
+#' variables intervened on (via \eqn{do(X = x)}) and values to the
+#' value assignments (their levels, e.g., \eqn{x}).
+#
+#' @return `cf` returns an object of class `counterfactual_variable`.
 #'
 #' @examples
 #' # Y without an assigned value or any interventions
@@ -49,94 +49,111 @@
 #' # than the previous (x != x') and Z is also assigned the value z
 #' cf("Y", 2, c("X" = 1, "Z" = 0))
 #' @export
-CounterfactualVariable <- function(var, obs = integer(0), int = integer(0)) {
-    var <- toupper(try_type(var = var, type = "character")[1])
-    if (length(obs)) {
-        obs <- try_type(obs = obs, type = "integer")[1]
-    }
-    names(var) <- names(obs) <- NULL
-    if (length(int)) {
-        if (is.null(names(int))) {
-            stop_("Argument `int` must be named")
-        }
-        int <- try_type(int = int, type = "integer")
-        names(int) <- toupper(names(int))
-    }
-    structure(
-        list(var = var, obs = obs, int = int),
-        class = "CounterfactualVariable"
+counterfactual_variable <- function(var, obs = integer(0L), sub = integer(0L)) {
+  stopifnot_(
+    length(var) == 1L,
+    "Argument `var` must be a signle character string."
+  )
+  var <- toupper(try_type(var = var, type = "character"))
+  stopifnot_(
+    length(obs) < 2L,
+    "Argument `obs` must a single integer if provided."
+  )
+  obs <- try_type(obs = obs, type = "integer")
+  names(var) <- NULL
+  names(obs) <- NULL
+  if (length(sub) > 0L) {
+    stopifnot_(
+      !is.null(names(sub)),
+      "Argument `sub` must be a named integer vector."
     )
+    sub <- try_type(sub = sub, type = "integer")
+    names(sub) <- toupper(names(sub))
+  }
+  structure(
+    list(var = var, obs = obs, sub = sub),
+    class = "counterfactual_variable"
+  )
 }
 
-is.CounterfactualVariable <- function(x) {
-    inherits(x, "CounterfactualVariable")
+#' Is the argument a `counterfactual_variable` object?
+#'
+#' @param x An \R object.
+#' @return A `logical` value that is `TRUE` if `x` is a
+#' `counterfactual_variable` object.
+#' @noRd
+is.counterfactual_variable <- function(x) {
+  inherits(x, "counterfactual_variable")
 }
 
+#' @method format counterfactual_variable
+#' @rdname counterfactuals
+#' @param x A `counterfactual_variable` or a `counterfactual_conjunction`
+#' object.
+#' @param use_primes A `logical` value indicating whether primes should be
+#' used to differentiate between value assignments
 #' @export
-format.CounterfactualVariable <- function(x, use_primes = TRUE, ...) {
-    super_var <- character(0L)
-    super_int <- character(0L)
-    form <- list(var = x$var, int = character(0L))
-    out <- ""
-    if (length(x$obs)) {
-        if (x$obs > 0L) {
-            if (use_primes) {
-                super_var <- rep_char("'", x$obs)
-            } else {
-                super_var <- paste0("^{(", x$obs, ")}")
-            }
-        }
-        form$var <- collapse(tolower(x$var), super_var)
+format.counterfactual_variable <- function(x, use_primes = TRUE, ...) {
+  super_var <- character(0L)
+  super_sub <- character(0L)
+  form <- list(var = x$var, sub = character(0L))
+  out <- ""
+  if (length(x$obs) > 0L) {
+    if (x$obs > 0L) {
+      if (use_primes) {
+        super_var <- rep_char("'", x$obs)
+      } else {
+        super_var <- paste0("^{(", x$obs, ")}")
+      }
+    } else if (x$obs < 0L) {
+      more <- x$obs < -1L
+      lhs <- ifelse_(more, "{", "")
+      rhs <- ifelse_(more, "}", "")
+      super_var <- paste0("^", lhs, "*", rhs)
+    }
+    form$var <- collapse(tolower(x$var), super_var)
+  } else {
+    form$var <- x$var
+  }
+  if (length(x$sub)) {
+    if (use_primes) {
+      super_sub <- sapply(x$sub, function(y) rep_char("'", y))
     } else {
-        form$var <- x$var
+      super_sub <- sapply(x$sub, function(y) paste0("^{(", y, ")}"))
+      super_sub[x$sub == 0L] <- ""
     }
-    if (length(x$int)) {
-        if (use_primes) {
-            super_int <- sapply(x$int, function(y) rep_char("'", y))
-        } else {
-            super_int <- sapply(x$int, function(y) paste0("^{(", y, ")}"))
-            super_int[x$int == 0L] <- ""
-        }
-        form$int <- paste0(paste0(tolower(names(x$int)), super_int),
-                           collapse = ",")
-        out <- collapse(form$var, "_{", form$int, "}")
-    } else {
-        out <- form$var
-    }
-    out
+    form$sub <- paste0(
+      paste0(tolower(names(x$sub)), super_sub),
+      collapse = ","
+    )
+    out <- collapse(form$var, "_{", form$sub, "}")
+  } else {
+    out <- form$var
+  }
+  out
 }
 
+#' @method print counterfactual_variable
+#' @rdname counterfactuals
 #' @export
-print.CounterfactualVariable <- function(x, ...) {
-    cat(format(x, ...), "\n")
+print.counterfactual_variable <- function(x, ...) {
+  cat(format(x, ...), "\n")
+  invisible(x)
 }
 
-#' @rdname CounterfactualVariable
+#' @rdname counterfactuals
 #' @export
-cf <- CounterfactualVariable
+cf <- counterfactual_variable
 
-# Check if x is a tautological statement
-is_tautology <- function(x) {
-    if (length(x$int)) {
-        if (x$var %in% names(x$int)) {
-            y <- which(names(x$int) %in% x$var)
-            if (x$obs == x$int[y]) {
-                return(TRUE)
-            }
-        }
-    }
+#' Check for consistent value assignments between counterfactual variables
+#'
+#' @param x A `counterfactual_variable` object.
+#' @param x y `counterfactual_variable` object.
+#' @noRd
+val_consistent <- function(x, y) {
+  if (is.null(x) || is.null(y) || identical(x, y)) {
+    TRUE
+  } else {
     FALSE
-}
-
-# Check if x is an inconsistent statement
-is_inconsistent <- function(x) {
-    if (length(x$int)) {
-        if (x$var %in% names(x$int)) {
-            y <- which(names(x$int) %in% x$var)
-            if (x$obs != x$int[y]) {
-                return(TRUE)
-            }
-        }
-    }
-    FALSE
+  }
 }

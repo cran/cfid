@@ -7,16 +7,13 @@
 import_graph(x)
 }
 \arguments{
-\item{x}{A graph object in a valid external format, see details.}
+\item{x}{A graph object in a valid external format.}
 }
 \value{
-A \code{DAG} object if successful.
+A \code{dag} object.
 }
 \description{
-Import and construct a valid DAG from an external format.
-}
-\details{
-Argument \code{x} accepts \code{\link[dagitty:dagitty]{dagitty::dagitty()}} graphs, igraph-graphs
-in the \code{\link[causaleffect:causaleffect-package]{causaleffect::causaleffect()}} package syntax and character strings
-in the \code{\link[dosearch:dosearch]{dosearch::dosearch()}} package syntax.
+Import and construct a valid DAG from an external format. Accepts
+\code{dagitty} graphs, \code{igraph} graphs in the \code{causaleffect} package syntax,
+and character strings in the \code{dosearch} package syntax.
 }
