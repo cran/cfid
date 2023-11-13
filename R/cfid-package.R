@@ -53,7 +53,7 @@
 #' \eqn{P_*} is the set of all interventional distributions
 #' in causal models inducing \eqn{G}. Identification is carried
 #' out by the ID* and IDC* algorithms by Shpitser and Pearl (2008) which aim to
-#' convenrt the input counterfactual probability into an expression which can
+#' convert the input counterfactual probability into an expression which can
 #' be represented solely in terms of interventional distributions. These
 #' algorithms are sound and complete, meaning that their output is always
 #' correct, and in the case of a non-identifiable counterfactual, one can
@@ -91,6 +91,11 @@
 #' @docType package
 #' @name cfid-package
 #' @references
+#'
+#' Tikka, S. (2023).
+#' Identifying counterfactual queries with the R package `cfid`.
+#' *The R Journal*, **15(2)**:330--343.
+#'
 #' Pearl, J. (1995) Causal diagrams for empirical research. *Biometrika*,
 #' **82(4)**:669--688.
 #'
@@ -108,4 +113,6 @@
 #' Makhlouf, K., Zhioua, S. and Palamidessi, C. (2021).
 #' Survey on causal-based machine learning fairness notions.
 #' *arXiv:2010.09553*
+#'
+
 NULL
