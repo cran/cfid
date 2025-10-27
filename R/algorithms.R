@@ -118,8 +118,12 @@ id_star <- function(g, gamma) {
   }
   s_sub <- unlist(unique(subs(gamma_prime)))
   s_sub <- split(s_sub, names(s_sub))
-  if (any(lengths(s_sub) > 1L)) {
-    return(list(id = FALSE, formula = NULL))
+  for (i in seq_along(s_sub)) {
+    if (length(unique(s_sub[[i]])) > 1) {
+      return(list(id = FALSE, formula = NULL))
+    } else {
+      s_sub[[i]] <- s_sub[[i]][1L]
+    }
   }
   s_val <- unlist(evs(gamma_prime))
   s_val <- split(s_val, names(s_val))
@@ -148,10 +152,9 @@ id_star <- function(g, gamma) {
   obs_ix <- which(lab %in% obs_var)
   obs_an <- ancestors(obs_ix, g)
   s_sub_an <- intersect(names(s_sub), lab[obs_an])
+  do <- integer(0L)
   if (length(s_sub_an) > 0L) {
     do <- lapply(s_sub_an, function(i) cf(var = i, obs = s_sub[i]))
-  } else {
-    do <- integer(0L)
   }
   list(id = TRUE, formula = probability(var = obs, do = do))
 }
